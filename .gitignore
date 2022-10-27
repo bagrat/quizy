@@ -32,3 +32,5 @@ quizy-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# PostgreSQL data directory for docker-compose
+.pgdata
