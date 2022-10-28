@@ -20,6 +20,11 @@ if System.get_env("PHX_SERVER") do
   config :quizy, QuizyWeb.Endpoint, server: true
 end
 
+config :mime, :types, %{
+  "application/json" => ["json"],
+  "text/html" => ["html"]
+}
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
