@@ -1,7 +1,7 @@
 defmodule Quizy.Accounts.UserNotifier do
   import Swoosh.Email
 
-  alias Quizy.Mailer
+  # alias Quizy.Mailer
 
   # Delivers the email using the application mailer.
   defp deliver(recipient, subject, body) do
@@ -12,9 +12,10 @@ defmodule Quizy.Accounts.UserNotifier do
       |> subject(subject)
       |> text_body(body)
 
-    with {:ok, _metadata} <- Mailer.deliver(email) do
-      {:ok, email}
-    end
+    # with {:ok, _metadata} <- Mailer.deliver(email) do
+    #   {:ok, email}
+    # end
+    {:ok, email}
   end
 
   @doc """
