@@ -167,4 +167,38 @@ defmodule QuizyWeb.UserAuthTest do
       refute conn.status
     end
   end
+
+  describe "bearer token" do
+    test "is generated from a user", %{user: user} do
+      token = UserAuth.generate_user_bearer_token(user)
+      {:ok, user_id} = Phoenix.Token.verify(QuizyWeb.Endpoint, "bearer token", token)
+      assert user_id == user.id
+    end
+
+    test "is used to fetch the user", %{user: user} do
+      token = UserAuth.generate_user_bearer_token(user)
+      fetched_user = UserAuth.get_user_by_bearer_token(token)
+
+      assert user.id == fetched_user.id
+    end
+
+    test "is used to authenticate the user and assign to connection", %{conn: conn, user: user} do
+      token = UserAuth.generate_user_bearer_token(user)
+
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer #{token}")
+        |> UserAuth.authenticate_bearer_token([])
+
+      assert conn.assigns.current_user == user
+    end
+
+    test "must be present not to receive a 401 response", %{conn: conn} do
+      conn = UserAuth.authenticate_bearer_token(conn, [])
+
+      assert json_response(conn, 401) == %{
+               "errors" => ["you must pass a bearer token in a header to authenticate"]
+             }
+    end
+  end
 end

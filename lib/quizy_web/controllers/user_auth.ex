@@ -85,6 +85,41 @@ defmodule QuizyWeb.UserAuth do
   end
 
   @doc """
+  Generates a bearer token.
+  """
+  def generate_user_bearer_token(user) do
+    Phoenix.Token.sign(QuizyWeb.Endpoint, "bearer token", user.id)
+  end
+
+  @doc """
+  Gets the user with the given signed bearer token.
+  """
+  def get_user_by_bearer_token(token) do
+    case Phoenix.Token.verify(QuizyWeb.Endpoint, "bearer token", token) do
+      {:ok, user_id} -> Accounts.get_user!(user_id)
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Verifies the bearer token and assigns :current_user to the authenticated user.
+  """
+  def authenticate_bearer_token(conn, _opts) do
+    with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
+         user <- get_user_by_bearer_token(token) do
+      conn
+      |> assign(:current_user, user)
+    else
+      _ ->
+        conn
+        |> put_status(:unauthorized)
+        |> Phoenix.Controller.put_view(QuizyWeb.ErrorView)
+        |> Phoenix.Controller.render("401.json")
+        |> halt()
+    end
+  end
+
+  @doc """
   Authenticates the user by looking into the session
   and remember me token.
   """

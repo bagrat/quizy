@@ -7,6 +7,22 @@ defmodule QuizyWeb.ErrorView do
   #   "Internal Server Error"
   # end
 
+  def render("401.json", _assigns) do
+    render_errors(["you must pass a bearer token in a header to authenticate"])
+  end
+
+  def render("400.json", %{changeset: changeset}) do
+    render_errors(translate_errors(changeset))
+  end
+
+  def render_errors(errors) do
+    %{errors: errors}
+  end
+
+  def translate_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, &translate_error/1)
+  end
+
   # By default, Phoenix returns the status message from
   # the template name. For example, "404.html" becomes
   # "Not Found".
