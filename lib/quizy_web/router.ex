@@ -28,8 +28,18 @@ defmodule QuizyWeb.Router do
   #   pipe_through :api
   # end
 
-  ## Authentication routes
+  ## API routes
+  scope "/api", QuizyWeb do
+    pipe_through [:api]
 
+    post "/users/tokens", API.TokenController, :create
+  end
+
+  scope "/api", QuizyWeb do
+    pipe_through [:api, :authenticate_bearer_token]
+  end
+
+  ## Authentication routes
   scope "/", QuizyWeb do
     pipe_through [:browser, :redirect_if_user_is_authenticated]
 

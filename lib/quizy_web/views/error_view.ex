@@ -8,11 +8,19 @@ defmodule QuizyWeb.ErrorView do
   # end
 
   def render("401.json", _assigns) do
-    render_errors(["you must pass a bearer token in a header to authenticate"])
+    render_error("you must pass a bearer token in a header to authenticate")
+  end
+
+  def render("400.json", %{error_message: message}) do
+    render_error(message)
   end
 
   def render("400.json", %{changeset: changeset}) do
     render_errors(translate_errors(changeset))
+  end
+
+  def render_error(error) do
+    render_errors([error])
   end
 
   def render_errors(errors) do
