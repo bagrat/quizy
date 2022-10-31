@@ -33,6 +33,8 @@ defmodule QuizyWeb.Router do
     pipe_through [:api]
 
     post "/users/tokens", API.TokenController, :create
+
+    post "/users", API.UserController, :create
   end
 
   scope "/api", QuizyWeb do
