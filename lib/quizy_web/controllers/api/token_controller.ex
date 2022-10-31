@@ -18,7 +18,7 @@ defmodule QuizyWeb.API.TokenController do
       conn
       |> put_view(QuizyWeb.ErrorView)
       |> put_status(:bad_request)
-      |> render("400.json", error_message: "Invalid email or password")
+      |> render("error.json", error_message: "Invalid email or password")
     end
   end
 
