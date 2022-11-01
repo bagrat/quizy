@@ -35,7 +35,7 @@ defmodule QuizyWeb.UserControllerTest do
 
     test "fails when there already exists a user with the same email", %{conn: conn} do
       password = "nothing matters"
-      user = user_fixture(%{password: password})
+      user = user_fixture(%{"password" => password})
 
       conn =
         post(conn, Routes.user_path(conn, :create),

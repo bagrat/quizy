@@ -39,6 +39,12 @@ defmodule QuizyWeb.Router do
 
   scope "/api", QuizyWeb do
     pipe_through [:api, :authenticate_bearer_token]
+
+    get "/quizes/:id", QuizController, :show
+    get "/quizes", QuizController, :index
+    post "/quizes", QuizController, :create
+    put "/quizes/:id", QuizController, :update
+    delete "/quizes/:id", QuizController, :delete
   end
 
   ## Authentication routes

@@ -10,7 +10,7 @@ defmodule QuizyWeb.TokenControllerTest do
   describe "create token" do
     test "returns token when credentials are valid", %{conn: conn} do
       password = "nothing matters"
-      user = user_fixture(%{password: password})
+      user = user_fixture(%{"password" => password})
 
       conn =
         post(conn, Routes.token_path(conn, :create),
