@@ -5,6 +5,8 @@ defmodule QuizyWeb.QuizControllerTest do
   import Quizy.AccountsFixtures
   import Quizy.TokenFixtures
 
+  alias Quizy.Quizes
+
   @create_attrs %{
     published?: false,
     title: "some title"
@@ -44,6 +46,37 @@ defmodule QuizyWeb.QuizControllerTest do
       conn = get(conn, Routes.quiz_path(conn, :index))
       assert json_response(conn, 200) == quizes
     end
+  end
+
+  test "only published quizes are available to other users", %{auth_conn: conn} do
+    others_quiz = quiz_fixture()
+
+    conn = get(conn, Routes.quiz_path(conn, :show, others_quiz.id))
+    assert conn.status == 404
+
+    Quizes.publish_quiz(others_quiz)
+
+    conn = get(conn, Routes.quiz_path(conn, :show, others_quiz.id))
+
+    assert %{
+             "id" => others_quiz.id,
+             "published" => true,
+             "title" => others_quiz.title
+           } == json_response(conn, 200)
+  end
+
+  test "unpublished quizes are available to the owners", %{auth_conn: conn, user: user} do
+    quiz = quiz_for_user_fixture(user)
+
+    assert quiz.published? == false
+
+    conn = get(conn, Routes.quiz_path(conn, :show, quiz.id))
+
+    assert %{
+             "id" => quiz.id,
+             "published" => false,
+             "title" => quiz.title
+           } == json_response(conn, 200)
   end
 
   describe "create quiz" do

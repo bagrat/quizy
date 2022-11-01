@@ -42,6 +42,15 @@ defmodule Quizy.Quizes do
   def get_quiz!(id), do: Repo.get!(Quiz, id)
 
   @doc """
+  Returns a quiz as if it was requested by the specified user.
+
+  If the user is not the owner of the quiz, it is returned only if published.
+  """
+  def quiz_available?(quiz, user) when quiz.user_id == user.id, do: true
+  def quiz_available?(quiz, user) when quiz.published?, do: true
+  def quiz_available?(quiz, user), do: false
+
+  @doc """
   Creates a quiz.
 
   ## Examples
@@ -84,6 +93,15 @@ defmodule Quizy.Quizes do
     |> Quiz.update_changeset(attrs)
     |> Repo.update()
   end
+
+  @doc """
+  Publishes the quiz.
+  """
+  def publish_quiz(%Quiz{published?: false} = quiz) do
+    update_quiz(quiz, %{"published" => "true"})
+  end
+
+  def publish_quiz(%Quiz{published?: true}), do: {:error, :already_published}
 
   @doc """
   Deletes a quiz.

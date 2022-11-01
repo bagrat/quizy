@@ -29,7 +29,18 @@ defmodule QuizyWeb.QuizController do
 
   def show(conn, %{"id" => id}) do
     quiz = Quizes.get_quiz!(id)
-    render(conn, "show.json", quiz: quiz)
+    current_user = conn.assigns.current_user
+
+    case Quizes.quiz_available?(quiz, current_user) do
+      true ->
+        render(conn, "show.json", quiz: quiz)
+
+      false ->
+        conn
+        |> put_view(QuizyWeb.ErrorView)
+        |> put_status(404)
+        |> render("error.json", error_message: "not found")
+    end
   end
 
   def update(conn, %{"id" => id, "quiz" => quiz_params}) do
