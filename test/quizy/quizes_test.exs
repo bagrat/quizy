@@ -317,6 +317,15 @@ defmodule Quizy.QuizesTest do
       assert {:error, :already_published} == Quizes.create_answer(valid_attrs, question)
     end
 
+    test "up to 5 questions are allowed to add to a question" do
+      valid_attrs = %{"multiple_choice" => false, "text" => "some text"}
+      question = question_fixture()
+
+      for _q <- 1..5, do: answer_for_question_fixture(question)
+
+      assert {:error, :too_many_answers} = Quizes.create_answer(valid_attrs, question)
+    end
+
     test "create_answer/1 with invalid data returns error changeset" do
       question = question_fixture()
       assert {:error, %Ecto.Changeset{}} = Quizes.create_answer(@invalid_attrs, question)

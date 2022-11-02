@@ -66,7 +66,6 @@ defmodule QuizyWeb.QuestionControllerTest do
       assert json_response(conn, 422)["errors"] != %{}
     end
 
-    @tag wip: true
     test "fails with 403 if there are already 10 of them existing", %{auth_conn: conn, user: user} do
       quiz = quiz_for_user_fixture(user)
 
