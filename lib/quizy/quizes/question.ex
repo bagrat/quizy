@@ -3,6 +3,7 @@ defmodule Quizy.Quizes.Question do
   import Ecto.Changeset
 
   alias Quizy.Repo
+  alias Quizy.Quizes.Answer
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -12,6 +13,7 @@ defmodule Quizy.Quizes.Question do
     field :multiple_choice?, :boolean, default: false, source: :multiple_choice
 
     belongs_to :quiz, Quizy.Quizes.Quiz
+    has_many :answers, Answer
 
     timestamps()
   end
