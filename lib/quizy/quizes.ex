@@ -119,16 +119,167 @@ defmodule Quizy.Quizes do
     Repo.delete(quiz)
   end
 
-  # @doc """
-  # Returns an `%Ecto.Changeset{}` for tracking quiz changes.
+  alias Quizy.Quizes.Question
 
-  # ## Examples
+  @doc """
+  Returns the list of questions.
 
-  #     iex> change_quiz(quiz)
-  #     %Ecto.Changeset{data: %Quiz{}}
+  ## Examples
 
-  # """
-  # def change_quiz(%Quiz{} = quiz, attrs \\ %{}) do
-  #   Quiz.changeset(quiz, attrs)
-  # end
+      iex> list_questions()
+      [%Question{}, ...]
+
+  """
+  def list_questions(quiz) do
+    query =
+      from q in Question,
+        where: q.quiz_id == ^quiz.id,
+        order_by: q.position
+
+    Repo.all(query)
+  end
+
+  @doc """
+  Gets a single question.
+
+  Raises `Ecto.NoResultsError` if the Question does not exist.
+
+  ## Examples
+
+      iex> get_question!(123)
+      %Question{}
+
+      iex> get_question!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_question!(id), do: Repo.get!(Question, id)
+
+  @doc """
+  Creates a question.
+
+  ## Examples
+
+      iex> create_question(%{field: value})
+      {:ok, %Question{}}
+
+      iex> create_question(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_question(attrs, quiz) do
+    num_of_questions = get_number_of_questions(quiz)
+
+    attrs =
+      attrs
+      |> Map.merge(%{"quiz_id" => quiz.id})
+
+    create_question_at_position(attrs, quiz, num_of_questions)
+  end
+
+  defp create_question_at_position(attrs, quiz, position) when position in 0..9 do
+    attrs =
+      attrs
+      |> Map.merge(%{"position" => position})
+
+    %Question{}
+    |> Question.create_changeset(attrs)
+    |> Repo.insert()
+  end
+
+  defp create_question_at_position(attrs, quiz, position), do: {:error, :too_many_questions}
+
+  defp get_number_of_questions(quiz) do
+    query = from q in Question, where: q.quiz_id == ^quiz.id, select: count()
+    Repo.one(query)
+  end
+
+  @doc """
+  Updates a question.
+
+  ## Examples
+
+      iex> update_question(question, %{field: new_value})
+      {:ok, %Question{}}
+
+      iex> update_question(question, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_question(%Question{} = question, %{"position" => new_position} = attrs)
+      when new_position != question.position do
+    quiz = get_quiz!(question.quiz_id)
+    num_of_questions = get_number_of_questions(quiz)
+
+    case new_position < num_of_questions do
+      true ->
+        validated_question =
+          question
+          |> Question.update_changeset(attrs)
+
+        query =
+          case new_position > question.position do
+            true ->
+              query =
+                from q in Question,
+                  where:
+                    q.quiz_id == ^quiz.id and q.position > ^question.position and
+                      q.position <= ^new_position,
+                  update: [set: [position: q.position - 1]]
+
+            false ->
+              query =
+                from q in Question,
+                  where:
+                    q.quiz_id == ^quiz.id and q.position < ^question.position and
+                      q.position >= ^new_position,
+                  update: [set: [position: q.position + 1]]
+          end
+
+        {:ok, %{update_position: question}} =
+          Ecto.Multi.new()
+          |> Ecto.Multi.put(:query, query)
+          |> Ecto.Multi.update_all(:shift, query, [])
+          |> Ecto.Multi.update(:update_position, validated_question)
+          |> Repo.transaction()
+
+        {:ok, question}
+
+      false ->
+        {:error, :bad_position}
+    end
+  end
+
+  def update_question(%Question{} = question, attrs) do
+    question
+    |> Question.update_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a question.
+
+  ## Examples
+
+      iex> delete_question(question)
+      {:ok, %Question{}}
+
+      iex> delete_question(question)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_question(%Question{} = question) do
+    query =
+      from q in Question,
+        where: q.quiz_id == ^question.quiz_id and q.position > ^question.position,
+        update: [set: [position: q.position - 1]]
+
+    {:ok, %{delete: result}} =
+      Ecto.Multi.new()
+      |> Ecto.Multi.delete(:delete, question)
+      |> Ecto.Multi.update_all(:shift, query, [])
+      |> Repo.transaction()
+
+    {:ok, result}
+  end
 end

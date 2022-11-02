@@ -3,7 +3,6 @@ defmodule Quizy.RepoTest do
 
   alias Quizy.Repo
 
-  @tag wip: true
   test "rename_bool_attrs/2 appends '?' to the supplied fields" do
     assert %{"field1" => "something", "bool_field_1?" => true, "bool_field_2?" => false} ==
              Repo.rename_bool_attrs(

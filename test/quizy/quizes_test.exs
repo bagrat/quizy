@@ -99,4 +99,152 @@ defmodule Quizy.QuizesTest do
     assert {:ok, %Quiz{}} = Quizes.delete_quiz(quiz)
     assert_raise Ecto.NoResultsError, fn -> Quizes.get_quiz!(quiz.id) end
   end
+
+  describe "questions" do
+    alias Quizy.Quizes.Question
+
+    import Quizy.QuizesFixtures
+
+    @invalid_attrs %{"multiple_choice" => nil, "text" => nil}
+
+    test "list_questions/0 returns all questions ordered by position" do
+      quiz1 = quiz_fixture()
+      quiz2 = quiz_fixture()
+
+      questions1 = for _q <- 1..5, do: question_for_quiz_fixture(quiz1)
+      questions2 = for _q <- 1..5, do: question_for_quiz_fixture(quiz2)
+
+      assert Quizes.list_questions(quiz1) == questions1
+      assert Quizes.list_questions(quiz2) == questions2
+
+      assert Quizes.list_questions(quiz1)
+             |> Enum.map(fn %{position: position} -> position end) == [0, 1, 2, 3, 4]
+    end
+
+    test "get_question!/1 returns the question with given id" do
+      question = question_fixture()
+      assert Quizes.get_question!(question.id) == question
+    end
+
+    test "create_question/2 adds a question to the quiz at the last position" do
+      valid_attrs = %{"multiple_choice" => false, "text" => "some text"}
+      quiz = quiz_fixture()
+
+      assert {:ok, %Question{} = question} = Quizes.create_question(valid_attrs, quiz)
+      assert question.multiple_choice? == false
+      assert question.text == "some text"
+      assert question.position == 0
+      assert question.quiz_id == quiz.id
+
+      assert {:ok, %Question{} = question} = Quizes.create_question(valid_attrs, quiz)
+      assert question.multiple_choice? == false
+      assert question.text == "some text"
+      assert question.position == 1
+      assert question.quiz_id == quiz.id
+
+      assert {:ok, %Question{} = question} = Quizes.create_question(valid_attrs, quiz)
+      assert question.multiple_choice? == false
+      assert question.text == "some text"
+      assert question.position == 2
+      assert question.quiz_id == quiz.id
+    end
+
+    test "create_question/1 with invalid data returns error changeset" do
+      quiz = quiz_fixture()
+      assert {:error, %Ecto.Changeset{}} = Quizes.create_question(@invalid_attrs, quiz)
+    end
+
+    test "of up to 10 may be added to a quiz" do
+      valid_attrs = %{"multiple_choice" => false, "text" => "some text"}
+      quiz = quiz_fixture()
+
+      for _q <- 1..10, do: question_for_quiz_fixture(quiz)
+
+      assert {:error, :too_many_questions} = Quizes.create_question(valid_attrs, quiz)
+    end
+
+    test "update_question/2 with valid data updates the question" do
+      question = question_fixture()
+      update_attrs = %{"multiple_choice" => true, "text" => "some updated text"}
+
+      assert {:ok, %Question{} = question} = Quizes.update_question(question, update_attrs)
+      assert question.multiple_choice? == true
+      assert question.text == "some updated text"
+    end
+
+    test "update_question/2 with invalid data returns error changeset" do
+      question = question_fixture()
+      assert {:error, %Ecto.Changeset{}} = Quizes.update_question(question, @invalid_attrs)
+      assert question == Quizes.get_question!(question.id)
+    end
+
+    test "update_question/2 reorders other questions if the position is changed" do
+      # Shifting down
+      quiz = quiz_fixture()
+      [_q0, q1, q2, q3, _q4] = for q <- 1..5, do: question_for_quiz_fixture(quiz)
+
+      assert {:ok, question} = Quizes.update_question(q3, %{"position" => 1})
+      assert question.position == 1
+
+      question_1_id = q1.id
+
+      assert %Question{id: ^question_1_id, position: 2} = Quizes.get_question!(question_1_id)
+
+      question_2_id = q2.id
+
+      assert %Question{id: ^question_2_id, position: 3} = Quizes.get_question!(question_2_id)
+
+      # Shifting up
+      quiz = quiz_fixture()
+      [q0, q1, q2, q3, q4] = for q <- 1..5, do: question_for_quiz_fixture(quiz)
+
+      assert {:ok, question} = Quizes.update_question(q0, %{"position" => 4})
+      assert question.position == 4
+
+      question_1_id = q1.id
+
+      assert %Question{id: ^question_1_id, position: 0} = Quizes.get_question!(question_1_id)
+
+      question_2_id = q2.id
+
+      assert %Question{id: ^question_2_id, position: 1} = Quizes.get_question!(question_2_id)
+
+      question_3_id = q3.id
+
+      assert %Question{id: ^question_3_id, position: 2} = Quizes.get_question!(question_3_id)
+
+      question_4_id = q4.id
+
+      assert %Question{id: ^question_4_id, position: 3} = Quizes.get_question!(question_4_id)
+    end
+
+    test "delete_question/1 deletes the question" do
+      question = question_fixture()
+      assert {:ok, %Question{}} = Quizes.delete_question(question)
+      assert_raise Ecto.NoResultsError, fn -> Quizes.get_question!(question.id) end
+    end
+
+    test "delete_question/1 deletes the question and reorders the rest" do
+      quiz = quiz_fixture()
+      [q0, q1, q2, q3, q4] = for q <- 1..5, do: question_for_quiz_fixture(quiz)
+
+      assert {:ok, %Question{}} = Quizes.delete_question(q1)
+
+      question_0_id = q0.id
+
+      assert %Question{id: ^question_0_id, position: 0} = Quizes.get_question!(question_0_id)
+
+      question_2_id = q2.id
+
+      assert %Question{id: ^question_2_id, position: 1} = Quizes.get_question!(question_2_id)
+
+      question_3_id = q3.id
+
+      assert %Question{id: ^question_3_id, position: 2} = Quizes.get_question!(question_3_id)
+
+      question_4_id = q4.id
+
+      assert %Question{id: ^question_4_id, position: 3} = Quizes.get_question!(question_4_id)
+    end
+  end
 end
