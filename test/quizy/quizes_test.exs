@@ -149,7 +149,6 @@ defmodule Quizy.QuizesTest do
       assert question.quiz_id == quiz.id
     end
 
-    @tag wip: true
     test "create_question/2 fails if the quiz is already published" do
       quiz = quiz_fixture()
 

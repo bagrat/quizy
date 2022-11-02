@@ -108,7 +108,6 @@ defmodule QuizyWeb.QuizControllerTest do
              } = json_response(conn, 200)
     end
 
-    @tag wip: true
     test "is allowed only by the owner", %{auth_conn: conn} do
       other_user = user_fixture()
       quiz = quiz_for_user_fixture(other_user)

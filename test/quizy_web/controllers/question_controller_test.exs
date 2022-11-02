@@ -65,6 +65,18 @@ defmodule QuizyWeb.QuestionControllerTest do
       conn = post(conn, Routes.question_path(conn, :create, quiz.id), question: @invalid_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
+
+    @tag wip: true
+    test "fails with 403 if there are already 10 of them existing", %{auth_conn: conn, user: user} do
+      quiz = quiz_for_user_fixture(user)
+
+      for _q <- 1..10,
+          do: post(conn, Routes.question_path(conn, :create, quiz.id), question: @create_attrs)
+
+      conn = post(conn, Routes.question_path(conn, :create, quiz.id), question: @create_attrs)
+
+      assert %{"errors" => ["up to 10 questions are allowed"]} == json_response(conn, 403)
+    end
   end
 
   describe "update question" do
@@ -82,7 +94,6 @@ defmodule QuizyWeb.QuestionControllerTest do
              } = Quizes.get_question!(id)
     end
 
-    @tag wip: true
     test "is allowed only by the quiz owner", %{auth_conn: conn} do
       other_user = user_fixture()
       quiz = quiz_for_user_fixture(other_user)

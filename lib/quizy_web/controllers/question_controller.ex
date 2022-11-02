@@ -26,6 +26,12 @@ defmodule QuizyWeb.QuestionController do
         |> put_view(QuizyWeb.ErrorView)
         |> render("404.json")
 
+      {:error, :too_many_questions} ->
+        conn
+        |> put_status(:forbidden)
+        |> put_view(QuizyWeb.ErrorView)
+        |> render("error.json", error_message: "up to 10 questions are allowed")
+
       {:error, %Ecto.Changeset{} = changeset} ->
         conn
         |> put_view(QuizyWeb.ChangesetView)
