@@ -2,8 +2,6 @@ defmodule QuizyWeb.QuizControllerTest do
   use QuizyWeb.ConnCase
 
   import Quizy.QuizesFixtures
-  import Quizy.AccountsFixtures
-  import Quizy.TokenFixtures
 
   alias Quizy.Quizes
 
@@ -18,16 +16,9 @@ defmodule QuizyWeb.QuizControllerTest do
   @invalid_attrs %{published?: nil, title: nil}
 
   setup %{conn: conn} do
-    user = user_fixture()
-    token = token_fixture(user)
+    fixtures = QuizyWeb.SetupHelpers.setup_auth(conn)
 
-    conn = put_req_header(conn, "accept", "application/json")
-
-    auth_conn =
-      conn
-      |> put_auth_header(token)
-
-    {:ok, conn: conn, auth_conn: auth_conn, user: user}
+    {:ok, fixtures}
   end
 
   describe "index" do

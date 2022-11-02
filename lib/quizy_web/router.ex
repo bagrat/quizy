@@ -45,6 +45,10 @@ defmodule QuizyWeb.Router do
     post "/quizes", QuizController, :create
     put "/quizes/:id", QuizController, :update
     delete "/quizes/:id", QuizController, :delete
+
+    post "/quizes/:quiz_id/questions", QuestionController, :create
+    put "/questions/:id", QuestionController, :update
+    delete "/questions/:id", QuestionController, :delete
   end
 
   ## Authentication routes

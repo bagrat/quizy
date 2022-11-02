@@ -181,7 +181,7 @@ defmodule Quizy.QuizesTest do
     test "update_question/2 reorders other questions if the position is changed" do
       # Shifting down
       quiz = quiz_fixture()
-      [_q0, q1, q2, q3, _q4] = for q <- 1..5, do: question_for_quiz_fixture(quiz)
+      [_q0, q1, q2, q3, _q4] = for _q <- 1..5, do: question_for_quiz_fixture(quiz)
 
       assert {:ok, question} = Quizes.update_question(q3, %{"position" => 1})
       assert question.position == 1
@@ -196,7 +196,7 @@ defmodule Quizy.QuizesTest do
 
       # Shifting up
       quiz = quiz_fixture()
-      [q0, q1, q2, q3, q4] = for q <- 1..5, do: question_for_quiz_fixture(quiz)
+      [q0, q1, q2, q3, q4] = for _q <- 1..5, do: question_for_quiz_fixture(quiz)
 
       assert {:ok, question} = Quizes.update_question(q0, %{"position" => 4})
       assert question.position == 4
@@ -226,7 +226,7 @@ defmodule Quizy.QuizesTest do
 
     test "delete_question/1 deletes the question and reorders the rest" do
       quiz = quiz_fixture()
-      [q0, q1, q2, q3, q4] = for q <- 1..5, do: question_for_quiz_fixture(quiz)
+      [q0, q1, q2, q3, q4] = for _q <- 1..5, do: question_for_quiz_fixture(quiz)
 
       assert {:ok, %Question{}} = Quizes.delete_question(q1)
 
