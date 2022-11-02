@@ -2,6 +2,7 @@ defmodule QuizyWeb.QuizControllerTest do
   use QuizyWeb.ConnCase
 
   import Quizy.QuizesFixtures
+  import Quizy.AccountsFixtures
 
   alias Quizy.Quizes
 
@@ -105,6 +106,18 @@ defmodule QuizyWeb.QuizControllerTest do
                "published" => true,
                "title" => "some updated title"
              } = json_response(conn, 200)
+    end
+
+    @tag wip: true
+    test "is allowed only by the owner", %{auth_conn: conn} do
+      other_user = user_fixture()
+      quiz = quiz_for_user_fixture(other_user)
+
+      conn = put(conn, Routes.quiz_path(conn, :update, quiz), quiz: @update_attrs)
+
+      assert %{
+               "errors" => ["not found"]
+             } = json_response(conn, 404)
     end
 
     test "is not allowed when already published", %{auth_conn: conn, user: user} do

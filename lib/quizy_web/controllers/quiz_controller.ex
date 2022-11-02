@@ -44,11 +44,17 @@ defmodule QuizyWeb.QuizController do
   end
 
   def update(conn, %{"id" => id, "quiz" => quiz_params}) do
-    quiz = Quizes.get_quiz!(id)
-
-    with {:ok, %Quiz{} = quiz} <- Quizes.update_quiz(quiz, quiz_params) do
+    with quiz <- Quizes.get_quiz!(id),
+         {:owner?, true} <- {:owner?, quiz.user_id == conn.assigns.current_user.id},
+         {:ok, %Quiz{} = quiz} <- Quizes.update_quiz(quiz, quiz_params) do
       render(conn, "show.json", quiz: quiz)
     else
+      {:owner?, false} ->
+        conn
+        |> put_status(:not_found)
+        |> put_view(QuizyWeb.ErrorView)
+        |> render("404.json")
+
       {:error, :already_published} ->
         conn
         |> put_view(QuizyWeb.ErrorView)

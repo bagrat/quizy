@@ -206,6 +206,15 @@ defmodule Quizy.Quizes do
       {:error, %Ecto.Changeset{}}
 
   """
+  def update_question(%Question{quiz: %Ecto.Association.NotLoaded{}} = question, attrs) do
+    question
+    |> Repo.preload(:quiz)
+    |> update_question(attrs)
+  end
+
+  def update_question(%Question{quiz: %Quiz{published?: true}}, _attrs),
+    do: {:error, :already_published}
+
   def update_question(%Question{} = question, %{"position" => new_position} = attrs)
       when new_position != question.position do
     quiz = get_quiz!(question.quiz_id)

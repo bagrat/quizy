@@ -31,8 +31,6 @@ defmodule QuizyWeb.QuestionControllerTest do
   # end
 
   describe "creating question" do
-    @describetag wip: true
-
     test "returns the new ID", %{auth_conn: conn, user: user} do
       quiz = quiz_for_user_fixture(user)
       conn = post(conn, Routes.question_path(conn, :create, quiz.id), question: @create_attrs)
@@ -85,6 +83,27 @@ defmodule QuizyWeb.QuestionControllerTest do
     end
 
     @tag wip: true
+    test "is allowed only by the quiz owner", %{auth_conn: conn} do
+      other_user = user_fixture()
+      quiz = quiz_for_user_fixture(other_user)
+      question = question_for_quiz_fixture(quiz)
+
+      conn = put(conn, Routes.question_path(conn, :update, question), question: @update_attrs)
+      assert %{"errors" => ["not found"]} = json_response(conn, 404)
+    end
+
+    test "fails with 403 if the quiz is already published", %{
+      auth_conn: conn
+    } do
+      quiz = quiz_fixture()
+      question = question_for_quiz_fixture(quiz)
+
+      Quizes.publish_quiz(quiz)
+
+      conn = put(conn, Routes.question_path(conn, :update, question), question: @update_attrs)
+      assert %{"errors" => ["published quizes are not editable"]} = json_response(conn, 403)
+    end
+
     test "is able to change question position", %{auth_conn: conn} do
       quiz = quiz_fixture()
       %Question{id: id1} = question1 = question_for_quiz_fixture(quiz)

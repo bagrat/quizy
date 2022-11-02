@@ -40,11 +40,24 @@ defmodule QuizyWeb.QuestionController do
   # end
 
   def update(conn, %{"id" => id, "question" => question_params}) do
-    question = Quizes.get_question!(id)
-
-    with {:ok, %Question{} = question} <- Quizes.update_question(question, question_params) do
+    with question <- Quizes.get_question!(id),
+         quiz <- Quizes.get_quiz!(question.quiz_id),
+         {:owner?, true} <- {:owner?, quiz.id == conn.assigns.current_user.id},
+         {:ok, %Question{} = question} <- Quizes.update_question(question, question_params) do
       render(conn, "show.json", question: question)
     else
+      {:owner?, false} ->
+        conn
+        |> put_status(:not_found)
+        |> put_view(QuizyWeb.ErrorView)
+        |> render("404.json")
+
+      {:error, :already_published} ->
+        conn
+        |> put_view(QuizyWeb.ErrorView)
+        |> put_status(403)
+        |> render("error.json", error_message: "published quizes are not editable")
+
       {:error, %Ecto.Changeset{} = changeset} ->
         conn
         |> put_view(QuizyWeb.ChangesetView)
