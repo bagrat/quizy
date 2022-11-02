@@ -80,9 +80,11 @@ defmodule QuizyWeb.QuestionControllerTest do
 
   describe "update question" do
     test "renders question when data is valid", %{
-      auth_conn: conn
+      auth_conn: conn,
+      user: user
     } do
-      %Question{id: id} = question = question_fixture()
+      quiz = quiz_for_user_fixture(user)
+      %Question{id: id} = question = question_for_quiz_fixture(quiz)
       conn = put(conn, Routes.question_path(conn, :update, question), question: @update_attrs)
       assert %{"id" => ^id} = json_response(conn, 200)
 
@@ -103,9 +105,10 @@ defmodule QuizyWeb.QuestionControllerTest do
     end
 
     test "fails with 403 if the quiz is already published", %{
-      auth_conn: conn
+      auth_conn: conn,
+      user: user
     } do
-      quiz = quiz_fixture()
+      quiz = quiz_for_user_fixture(user)
       question = question_for_quiz_fixture(quiz)
 
       Quizes.publish_quiz(quiz)
@@ -114,8 +117,8 @@ defmodule QuizyWeb.QuestionControllerTest do
       assert %{"errors" => ["published quizes are not editable"]} = json_response(conn, 403)
     end
 
-    test "is able to change question position", %{auth_conn: conn} do
-      quiz = quiz_fixture()
+    test "is able to change question position", %{auth_conn: conn, user: user} do
+      quiz = quiz_for_user_fixture(user)
       %Question{id: id1} = question1 = question_for_quiz_fixture(quiz)
       %Question{id: id2} = question2 = question_for_quiz_fixture(quiz)
 
@@ -140,8 +143,9 @@ defmodule QuizyWeb.QuestionControllerTest do
              } = Quizes.get_question!(id2)
     end
 
-    test "renders errors when data is invalid", %{auth_conn: conn} do
-      %Question{id: id} = question_fixture()
+    test "renders errors when data is invalid", %{auth_conn: conn, user: user} do
+      quiz = quiz_for_user_fixture(user)
+      %Question{id: id} = question_for_quiz_fixture(quiz)
       conn = put(conn, Routes.question_path(conn, :update, id), question: @invalid_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end

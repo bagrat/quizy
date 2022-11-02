@@ -48,7 +48,7 @@ defmodule QuizyWeb.QuestionController do
   def update(conn, %{"id" => id, "question" => question_params}) do
     with question <- Quizes.get_question!(id),
          quiz <- Quizes.get_quiz!(question.quiz_id),
-         {:owner?, true} <- {:owner?, quiz.id == conn.assigns.current_user.id},
+         {:owner?, true} <- {:owner?, quiz.user_id == conn.assigns.current_user.id},
          {:ok, %Question{} = question} <- Quizes.update_question(question, question_params) do
       render(conn, "show.json", question: question)
     else
