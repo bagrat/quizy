@@ -77,7 +77,7 @@ defmodule Quizy.QuizesFixtures do
     {:ok, answer} =
       attrs
       |> Enum.into(%{
-        "correct" => true,
+        "correct" => false,
         "text" => "some text"
       })
       |> Quizy.Quizes.create_answer(question)
@@ -94,7 +94,7 @@ defmodule Quizy.QuizesFixtures do
     {:ok, answer} =
       attrs
       |> Enum.into(%{
-        "correct" => true,
+        "correct" => false,
         "text" => "some text"
       })
       |> Quizy.Quizes.create_answer(question)

@@ -7,6 +7,8 @@ defmodule Quizy.Quizes do
   alias Quizy.Repo
 
   alias Quizy.Quizes.Quiz
+  alias Quizy.Quizes.Question
+  alias Quizy.Quizes.Answer
 
   @doc """
   Returns the list of quizes.
@@ -88,20 +90,66 @@ defmodule Quizy.Quizes do
     {:error, :already_published}
   end
 
+  def update_quiz(%Quiz{published?: false} = quiz, %{"published" => true} = attrs) do
+    case quiz_complete?(quiz) do
+      true ->
+        quiz
+        |> Quiz.update_changeset(attrs)
+        |> Repo.update()
+
+      false ->
+        {:error, :incomplete}
+    end
+  end
+
   def update_quiz(%Quiz{} = quiz, attrs) do
     quiz
     |> Quiz.update_changeset(attrs)
     |> Repo.update()
   end
 
+  defp quiz_complete?(%Quiz{questions: []}), do: false
+
+  defp quiz_complete?(%Quiz{questions: questions}) when is_list(questions) do
+    questions
+    |> Enum.map(fn question ->
+      question
+      |> Repo.preload(:answers)
+      |> question_complete?()
+    end)
+    |> Enum.all?()
+  end
+
+  defp quiz_complete?(quiz) do
+    quiz
+    |> Repo.preload(:questions)
+    |> quiz_complete?()
+  end
+
+  defp question_complete?(%Question{answers: []}), do: false
+
+  defp question_complete?(%Question{answers: answers, multiple_choice?: true} = questions)
+       when is_list(answers) do
+    answers
+    |> Enum.map(fn answer -> answer.correct? end)
+    |> Enum.any?()
+  end
+
+  defp question_complete?(%Question{answers: answers, multiple_choice?: false} = questions)
+       when is_list(answers) do
+    1 ==
+      answers
+      |> Enum.map(fn answer -> answer.correct? end)
+      |> Enum.filter(& &1)
+      |> length()
+  end
+
   @doc """
   Publishes the quiz.
   """
   def publish_quiz(%Quiz{published?: false} = quiz) do
-    update_quiz(quiz, %{"published" => "true"})
+    update_quiz(quiz, %{"published" => true})
   end
-
-  def publish_quiz(%Quiz{published?: true}), do: {:error, :already_published}
 
   @doc """
   Deletes a quiz.

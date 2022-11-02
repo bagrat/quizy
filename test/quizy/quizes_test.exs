@@ -35,6 +35,8 @@ defmodule Quizy.QuizesTest do
     test "quiz_available?/2 returns true if the requesting user is not the owner but the quiz is published" do
       owner = user_fixture()
       quiz = quiz_for_user_fixture(owner)
+      question = question_for_quiz_fixture(quiz)
+      answer_for_question_fixture(question, %{"correct" => true})
 
       {:ok, quiz} = Quizes.publish_quiz(quiz)
 
@@ -72,11 +74,58 @@ defmodule Quizy.QuizesTest do
 
     test "update_quiz/2 with valid data updates the quiz" do
       quiz = quiz_fixture()
+      question = question_for_quiz_fixture(quiz)
+      answer_for_question_fixture(question, %{"correct" => true})
+
       update_attrs = %{"published" => true, "title" => "some updated title"}
 
       assert {:ok, %Quiz{} = quiz} = Quizes.update_quiz(quiz, update_attrs)
       assert quiz.published? == true
       assert quiz.title == "some updated title"
+    end
+
+    test "cannot be published until complete" do
+      quiz = quiz_fixture()
+
+      assert {:error, :incomplete} == Quizes.publish_quiz(quiz)
+
+      question_multi1 = question_for_quiz_fixture(quiz, %{"multiple_choice" => true})
+      question_multi2 = question_for_quiz_fixture(quiz, %{"multiple_choice" => true})
+      question_single = question_for_quiz_fixture(quiz, %{"multiple_choice" => false})
+
+      quiz = Quizes.get_quiz!(quiz.id)
+      assert {:error, :incomplete} == Quizes.publish_quiz(quiz)
+
+      answer_for_question_fixture(question_multi1, %{"correct" => false})
+      answer_for_question_fixture(question_multi1, %{"correct" => false})
+      answer_for_question_fixture(question_multi1, %{"correct" => false})
+
+      answer_for_question_fixture(question_multi2, %{"correct" => false})
+      answer_for_question_fixture(question_multi2, %{"correct" => false})
+      answer_for_question_fixture(question_multi2, %{"correct" => false})
+
+      answer_for_question_fixture(question_single, %{"correct" => false})
+      answer_for_question_fixture(question_single, %{"correct" => false})
+      answer_for_question_fixture(question_single, %{"correct" => false})
+
+      quiz = Quizes.get_quiz!(quiz.id)
+      assert {:error, :incomplete} == Quizes.publish_quiz(quiz)
+
+      answer_for_question_fixture(question_multi1, %{"correct" => true})
+
+      quiz = Quizes.get_quiz!(quiz.id)
+      assert {:error, :incomplete} == Quizes.publish_quiz(quiz)
+
+      answer_for_question_fixture(question_multi2, %{"correct" => true})
+      answer_for_question_fixture(question_multi2, %{"correct" => true})
+
+      quiz = Quizes.get_quiz!(quiz.id)
+      assert {:error, :incomplete} == Quizes.publish_quiz(quiz)
+
+      answer_for_question_fixture(question_single, %{"correct" => true})
+
+      quiz = Quizes.get_quiz!(quiz.id)
+      assert {:ok, %Quiz{published?: true}} = Quizes.publish_quiz(quiz)
     end
 
     test "update_quiz/2 with invalid data returns error changeset" do
@@ -151,6 +200,8 @@ defmodule Quizy.QuizesTest do
 
     test "create_question/2 fails if the quiz is already published" do
       quiz = quiz_fixture()
+      question = question_for_quiz_fixture(quiz)
+      answer_for_question_fixture(question, %{"correct" => true})
 
       {:ok, quiz} = Quizes.publish_quiz(quiz)
 
@@ -229,6 +280,7 @@ defmodule Quizy.QuizesTest do
     test "update_question/2 fails if the quiz is already published" do
       quiz = quiz_fixture()
       question = question_for_quiz_fixture(quiz)
+      answer_for_question_fixture(question, %{"correct" => true})
 
       Quizes.publish_quiz(quiz)
 
@@ -309,6 +361,7 @@ defmodule Quizy.QuizesTest do
     test "create_answer/2 fails if the quiz is already published" do
       quiz = quiz_fixture()
       question = question_for_quiz_fixture(quiz)
+      answer_for_question_fixture(question, %{"correct" => true})
 
       Quizes.publish_quiz(quiz)
 
@@ -343,7 +396,7 @@ defmodule Quizy.QuizesTest do
     test "update_answer/2 is allowed only for unpublished quizes" do
       quiz = quiz_fixture()
       question = question_for_quiz_fixture(quiz)
-      answer = answer_for_question_fixture(question)
+      answer = answer_for_question_fixture(question, %{"correct" => true})
 
       Quizes.publish_quiz(quiz)
 
@@ -402,7 +455,6 @@ defmodule Quizy.QuizesTest do
       assert_raise Ecto.NoResultsError, fn -> Quizes.get_answer!(answer.id) end
     end
 
-    @tag wip: true
     test "delete_answer/1 deletes the answer and reorders the rest" do
       quiz = quiz_fixture()
       question = question_for_quiz_fixture(quiz)

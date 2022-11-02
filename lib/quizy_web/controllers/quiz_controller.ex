@@ -55,6 +55,12 @@ defmodule QuizyWeb.QuizController do
         |> put_view(QuizyWeb.ErrorView)
         |> render("404.json")
 
+      {:error, :incomplete} ->
+        conn
+        |> put_view(QuizyWeb.ErrorView)
+        |> put_status(403)
+        |> render("error.json", error_message: "cannot publish an incomplete quiz")
+
       {:error, :already_published} ->
         conn
         |> put_view(QuizyWeb.ErrorView)

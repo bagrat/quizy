@@ -42,6 +42,8 @@ defmodule QuizyWeb.QuizControllerTest do
 
   test "only published quizes are available to other users", %{auth_conn: conn} do
     others_quiz = quiz_fixture()
+    question = question_for_quiz_fixture(others_quiz)
+    answer_for_question_fixture(question, %{"correct" => true})
 
     conn = get(conn, Routes.quiz_path(conn, :show, others_quiz.id))
     assert conn.status == 404
@@ -55,6 +57,21 @@ defmodule QuizyWeb.QuizControllerTest do
              "published" => true,
              "title" => others_quiz.title
            } == json_response(conn, 200)
+  end
+
+  test "attempting to publish an incomplete quiz fails with 403", %{auth_conn: conn, user: user} do
+    quiz = quiz_for_user_fixture(user)
+
+    assert quiz.published? == false
+
+    conn = put(conn, Routes.quiz_path(conn, :update, quiz), quiz: %{"published" => true})
+
+    quiz = Quizes.get_quiz!(quiz.id)
+    assert quiz.published? == false
+
+    assert %{
+             "errors" => ["cannot publish an incomplete quiz"]
+           } == json_response(conn, 403)
   end
 
   test "unpublished quizes are available to the owners", %{auth_conn: conn, user: user} do

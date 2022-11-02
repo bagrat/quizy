@@ -110,6 +110,7 @@ defmodule QuizyWeb.QuestionControllerTest do
     } do
       quiz = quiz_for_user_fixture(user)
       question = question_for_quiz_fixture(quiz)
+      answer_for_question_fixture(question, %{"correct" => true})
 
       Quizes.publish_quiz(quiz)
 

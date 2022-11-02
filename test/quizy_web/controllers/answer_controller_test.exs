@@ -83,7 +83,7 @@ defmodule QuizyWeb.AnswerControllerTest do
     } do
       quiz = quiz_for_user_fixture(user)
       question = question_for_quiz_fixture(quiz)
-      answer = answer_for_question_fixture(question)
+      answer = answer_for_question_fixture(question, %{"correct" => true})
 
       Quizes.publish_quiz(quiz)
 
@@ -91,7 +91,6 @@ defmodule QuizyWeb.AnswerControllerTest do
       assert %{"errors" => ["published quizes are not editable"]} = json_response(conn, 403)
     end
 
-    @tag wip: true
     test "is able to change answer position", %{auth_conn: conn, user: user} do
       quiz = quiz_for_user_fixture(user)
       question = question_for_quiz_fixture(quiz)
