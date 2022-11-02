@@ -149,8 +149,13 @@ defmodule Quizy.QuizesTest do
       assert question.quiz_id == quiz.id
     end
 
+    @tag wip: true
     test "create_question/2 fails if the quiz is already published" do
-      assert false
+      quiz = quiz_fixture()
+
+      {:ok, quiz} = Quizes.publish_quiz(quiz)
+
+      assert {:error, :already_published} == Quizes.create_question(%{}, quiz)
     end
 
     test "create_question/1 with invalid data returns error changeset" do
@@ -262,8 +267,6 @@ defmodule Quizy.QuizesTest do
   end
 
   describe "answers" do
-    @describetag wip: true
-
     alias Quizy.Quizes.Answer
 
     import Quizy.QuizesFixtures

@@ -167,6 +167,10 @@ defmodule Quizy.Quizes do
       {:error, %Ecto.Changeset{}}
 
   """
+  def create_question(_attrs, %Quiz{published?: true}) do
+    {:error, :already_published}
+  end
+
   def create_question(attrs, quiz) do
     num_of_questions = get_number_of_questions(quiz)
 
@@ -187,7 +191,7 @@ defmodule Quizy.Quizes do
     |> Repo.insert()
   end
 
-  defp create_question_at_position(attrs, quiz, position), do: {:error, :too_many_questions}
+  defp create_question_at_position(attrs, position), do: {:error, :too_many_questions}
 
   defp get_number_of_questions(quiz) do
     query = from q in Question, where: q.quiz_id == ^quiz.id, select: count()
@@ -364,6 +368,8 @@ defmodule Quizy.Quizes do
     |> Answer.create_changeset(attrs)
     |> Repo.insert()
   end
+
+  defp create_answer_at_position(attrs, position), do: {:error, :too_many_answers}
 
   defp get_number_of_answers(question) do
     query = from a in Answer, where: a.question_id == ^question.id, select: count()
