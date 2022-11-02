@@ -174,10 +174,10 @@ defmodule Quizy.Quizes do
       attrs
       |> Map.merge(%{"quiz_id" => quiz.id})
 
-    create_question_at_position(attrs, quiz, num_of_questions)
+    create_question_at_position(attrs, num_of_questions)
   end
 
-  defp create_question_at_position(attrs, quiz, position) when position in 0..9 do
+  defp create_question_at_position(attrs, position) when position in 0..9 do
     attrs =
       attrs
       |> Map.merge(%{"position" => position})
@@ -290,5 +290,184 @@ defmodule Quizy.Quizes do
       |> Repo.transaction()
 
     {:ok, result}
+  end
+
+  alias Quizy.Quizes.Answer
+
+  @doc """
+  Returns the list of answers.
+
+  ## Examples
+
+      iex> list_answers()
+      [%Answer{}, ...]
+
+  """
+  def list_answers(question) do
+    query = from a in Answer, where: a.question_id == ^question.id, order_by: [:position]
+
+    Repo.all(query)
+  end
+
+  @doc """
+  Gets a single answer.
+
+  Raises `Ecto.NoResultsError` if the Answer does not exist.
+
+  ## Examples
+
+      iex> get_answer!(123)
+      %Answer{}
+
+      iex> get_answer!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_answer!(id), do: Repo.get!(Answer, id)
+
+  @doc """
+  Creates a answer.
+
+  ## Examples
+
+      iex> create_answer(%{field: value})
+      {:ok, %Answer{}}
+
+      iex> create_answer(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_answer(attrs, %Question{quiz: %Ecto.Association.NotLoaded{}} = question) do
+    create_answer(attrs, Repo.preload(question, :quiz))
+  end
+
+  def create_answer(attrs, %Question{quiz: %Quiz{published?: true}}) do
+    {:error, :already_published}
+  end
+
+  def create_answer(attrs, question) do
+    num_of_questions = get_number_of_answers(question)
+
+    attrs =
+      attrs
+      |> Map.merge(%{"question_id" => question.id})
+
+    create_answer_at_position(attrs, num_of_questions)
+  end
+
+  defp create_answer_at_position(attrs, position) when position in 0..4 do
+    attrs =
+      attrs
+      |> Map.merge(%{"position" => position})
+
+    %Answer{}
+    |> Answer.create_changeset(attrs)
+    |> Repo.insert()
+  end
+
+  defp get_number_of_answers(question) do
+    query = from a in Answer, where: a.question_id == ^question.id, select: count()
+    Repo.one(query)
+  end
+
+  @doc """
+  Updates a answer.
+
+  ## Examples
+
+      iex> update_answer(answer, %{field: new_value})
+      {:ok, %Answer{}}
+
+      iex> update_answer(answer, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_answer(%Answer{question: %Ecto.Association.NotLoaded{}} = answer, attrs) do
+    answer
+    |> Repo.preload(question: [:quiz])
+    |> update_answer(attrs)
+  end
+
+  def update_answer(%Answer{question: %Question{quiz: %Quiz{published?: true}}}, _attrs) do
+    {:error, :already_published}
+  end
+
+  def update_answer(%Answer{} = answer, %{"position" => new_position} = attrs)
+      when new_position != answer.position do
+    question = get_question!(answer.question_id)
+    num_of_answers = get_number_of_answers(question)
+
+    case new_position < num_of_answers do
+      true ->
+        validated_answer =
+          answer
+          |> Answer.update_changeset(attrs)
+
+        query =
+          case new_position > answer.position do
+            true ->
+              query =
+                from q in Answer,
+                  where:
+                    q.question_id == ^question.id and q.position > ^answer.position and
+                      q.position <= ^new_position,
+                  update: [set: [position: q.position - 1]]
+
+            false ->
+              query =
+                from q in Answer,
+                  where:
+                    q.question_id == ^question.id and q.position < ^answer.position and
+                      q.position >= ^new_position,
+                  update: [set: [position: q.position + 1]]
+          end
+
+        {:ok, %{update_position: answer}} =
+          Ecto.Multi.new()
+          |> Ecto.Multi.put(:query, query)
+          |> Ecto.Multi.update_all(:shift, query, [])
+          |> Ecto.Multi.update(:update_position, validated_answer)
+          |> Repo.transaction()
+
+        {:ok, answer}
+
+      false ->
+        {:error, :bad_position}
+    end
+  end
+
+  def update_answer(%Answer{} = answer, attrs) do
+    answer
+    |> Answer.update_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a answer.
+
+  ## Examples
+
+      iex> delete_answer(answer)
+      {:ok, %Answer{}}
+
+      iex> delete_answer(answer)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_answer(%Answer{} = answer) do
+    Repo.delete(answer)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking answer changes.
+
+  ## Examples
+
+      iex> change_answer(answer)
+      %Ecto.Changeset{data: %Answer{}}
+
+  """
+  def change_answer(%Answer{} = answer, attrs \\ %{}) do
+    Answer.changeset(answer, attrs)
   end
 end

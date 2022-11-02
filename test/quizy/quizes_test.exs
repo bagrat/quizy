@@ -149,6 +149,10 @@ defmodule Quizy.QuizesTest do
       assert question.quiz_id == quiz.id
     end
 
+    test "create_question/2 fails if the quiz is already published" do
+      assert false
+    end
+
     test "create_question/1 with invalid data returns error changeset" do
       quiz = quiz_fixture()
       assert {:error, %Ecto.Changeset{}} = Quizes.create_question(@invalid_attrs, quiz)
@@ -254,6 +258,137 @@ defmodule Quizy.QuizesTest do
       question_4_id = q4.id
 
       assert %Question{id: ^question_4_id, position: 3} = Quizes.get_question!(question_4_id)
+    end
+  end
+
+  describe "answers" do
+    @describetag wip: true
+
+    alias Quizy.Quizes.Answer
+
+    import Quizy.QuizesFixtures
+
+    @invalid_attrs %{"correct" => nil, "text" => nil}
+
+    test "list_answers/1 returns all answers for question ordered by position" do
+      question1 = question_fixture()
+      question2 = question_fixture()
+      answers1 = for _a <- 1..3, do: answer_for_question_fixture(question1)
+      answers2 = for _a <- 1..3, do: answer_for_question_fixture(question2)
+
+      assert Quizes.list_answers(question1) == answers1
+      assert Quizes.list_answers(question2) == answers2
+
+      assert Quizes.list_answers(question1)
+             |> Enum.map(fn %{position: position} -> position end) == [0, 1, 2]
+    end
+
+    test "get_answer!/1 returns the answer with given id" do
+      answer = answer_fixture()
+      assert Quizes.get_answer!(answer.id) == answer
+    end
+
+    test "create_answer/2 with valid data creates a answer" do
+      valid_attrs = %{"correct" => true, "text" => "some text"}
+
+      question = question_fixture()
+
+      assert {:ok, %Answer{} = answer} = Quizes.create_answer(valid_attrs, question)
+      assert answer.correct? == true
+      assert answer.text == "some text"
+      assert answer.position == 0
+
+      assert {:ok, %Answer{} = answer} = Quizes.create_answer(valid_attrs, question)
+      assert answer.correct? == true
+      assert answer.text == "some text"
+      assert answer.position == 1
+    end
+
+    test "create_answer/2 fails if the quiz is already published" do
+      quiz = quiz_fixture()
+      question = question_for_quiz_fixture(quiz)
+
+      Quizes.publish_quiz(quiz)
+
+      valid_attrs = %{"correct" => true, "text" => "some text"}
+
+      assert {:error, :already_published} == Quizes.create_answer(valid_attrs, question)
+    end
+
+    test "create_answer/1 with invalid data returns error changeset" do
+      question = question_fixture()
+      assert {:error, %Ecto.Changeset{}} = Quizes.create_answer(@invalid_attrs, question)
+    end
+
+    test "update_answer/2 with valid data updates the answer" do
+      answer = answer_fixture()
+      update_attrs = %{"correct" => false, "text" => "some updated text"}
+
+      assert {:ok, %Answer{} = answer} = Quizes.update_answer(answer, update_attrs)
+      assert answer.correct? == false
+      assert answer.text == "some updated text"
+    end
+
+    test "update_answer/2 is allowed only for unpublished quizes" do
+      quiz = quiz_fixture()
+      question = question_for_quiz_fixture(quiz)
+      answer = answer_for_question_fixture(question)
+
+      Quizes.publish_quiz(quiz)
+
+      assert {:error, :already_published} == Quizes.update_answer(answer, %{})
+    end
+
+    test "update_answer/2 reorders other answers if the position is changed" do
+      # Shifting down
+      question = question_fixture()
+      [_q0, a1, a2, a3, _a4] = for _q <- 1..5, do: answer_for_question_fixture(question)
+
+      assert {:ok, answer} = Quizes.update_answer(a3, %{"position" => 1})
+      assert answer.position == 1
+
+      answer_1_id = a1.id
+
+      assert %Answer{id: ^answer_1_id, position: 2} = Quizes.get_answer!(answer_1_id)
+
+      answer_2_id = a2.id
+
+      assert %Answer{id: ^answer_2_id, position: 3} = Quizes.get_answer!(answer_2_id)
+
+      # Shifting up
+      question = question_fixture()
+      [q0, a1, a2, a3, a4] = for _q <- 1..5, do: answer_for_question_fixture(question)
+
+      assert {:ok, answer} = Quizes.update_answer(q0, %{"position" => 4})
+      assert answer.position == 4
+
+      answer_1_id = a1.id
+
+      assert %Answer{id: ^answer_1_id, position: 0} = Quizes.get_answer!(answer_1_id)
+
+      answer_2_id = a2.id
+
+      assert %Answer{id: ^answer_2_id, position: 1} = Quizes.get_answer!(answer_2_id)
+
+      answer_3_id = a3.id
+
+      assert %Answer{id: ^answer_3_id, position: 2} = Quizes.get_answer!(answer_3_id)
+
+      answer_4_id = a4.id
+
+      assert %Answer{id: ^answer_4_id, position: 3} = Quizes.get_answer!(answer_4_id)
+    end
+
+    test "update_answer/2 with invalid data returns error changeset" do
+      answer = answer_fixture()
+      assert {:error, %Ecto.Changeset{}} = Quizes.update_answer(answer, @invalid_attrs)
+      assert answer == Quizes.get_answer!(answer.id)
+    end
+
+    test "delete_answer/1 deletes the answer" do
+      answer = answer_fixture()
+      assert {:ok, %Answer{}} = Quizes.delete_answer(answer)
+      assert_raise Ecto.NoResultsError, fn -> Quizes.get_answer!(answer.id) end
     end
   end
 end

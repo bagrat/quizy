@@ -3,6 +3,7 @@ defmodule Quizy.Quizes.Answer do
   import Ecto.Changeset
 
   alias Quizy.Quizes.Question
+  alias Quizy.Repo
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -21,8 +22,8 @@ defmodule Quizy.Quizes.Answer do
     attrs = Repo.rename_bool_attrs(attrs, ["correct"])
 
     answer
-    |> cast(attrs, [:question_id, :text, :correct?])
-    |> validate_required([:question_id, :text, :correct?])
+    |> cast(attrs, [:question_id, :text, :correct?, :position])
+    |> validate_required([:question_id, :text, :correct?, :position])
   end
 
   @doc false

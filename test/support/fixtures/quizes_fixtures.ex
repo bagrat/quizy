@@ -69,4 +69,36 @@ defmodule Quizy.QuizesFixtures do
 
     question
   end
+
+  @doc """
+  Generate a answer for question.
+  """
+  def answer_for_question_fixture(question, attrs \\ %{}) do
+    {:ok, answer} =
+      attrs
+      |> Enum.into(%{
+        "correct" => true,
+        "text" => "some text"
+      })
+      |> Quizy.Quizes.create_answer(question)
+
+    answer
+  end
+
+  @doc """
+  Generate a answer.
+  """
+  def answer_fixture(attrs \\ %{}) do
+    question = question_fixture()
+
+    {:ok, answer} =
+      attrs
+      |> Enum.into(%{
+        "correct" => true,
+        "text" => "some text"
+      })
+      |> Quizy.Quizes.create_answer(question)
+
+    answer
+  end
 end
