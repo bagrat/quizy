@@ -401,5 +401,30 @@ defmodule Quizy.QuizesTest do
       assert {:ok, %Answer{}} = Quizes.delete_answer(answer)
       assert_raise Ecto.NoResultsError, fn -> Quizes.get_answer!(answer.id) end
     end
+
+    @tag wip: true
+    test "delete_answer/1 deletes the answer and reorders the rest" do
+      quiz = quiz_fixture()
+      question = question_for_quiz_fixture(quiz)
+      [a0, a1, a2, a3, a4] = for _q <- 1..5, do: answer_for_question_fixture(question)
+
+      assert {:ok, %Answer{}} = Quizes.delete_answer(a1)
+
+      answer_0_id = a0.id
+
+      assert %Answer{id: ^answer_0_id, position: 0} = Quizes.get_answer!(answer_0_id)
+
+      answer_2_id = a2.id
+
+      assert %Answer{id: ^answer_2_id, position: 1} = Quizes.get_answer!(answer_2_id)
+
+      answer_3_id = a3.id
+
+      assert %Answer{id: ^answer_3_id, position: 2} = Quizes.get_answer!(answer_3_id)
+
+      answer_4_id = a4.id
+
+      assert %Answer{id: ^answer_4_id, position: 3} = Quizes.get_answer!(answer_4_id)
+    end
   end
 end

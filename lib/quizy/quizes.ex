@@ -461,19 +461,17 @@ defmodule Quizy.Quizes do
 
   """
   def delete_answer(%Answer{} = answer) do
-    Repo.delete(answer)
-  end
+    query =
+      from a in Answer,
+        where: a.question_id == ^answer.question_id and a.position > ^answer.position,
+        update: [set: [position: a.position - 1]]
 
-  @doc """
-  Returns an `%Ecto.Changeset{}` for tracking answer changes.
+    {:ok, %{delete: result}} =
+      Ecto.Multi.new()
+      |> Ecto.Multi.delete(:delete, answer)
+      |> Ecto.Multi.update_all(:shift, query, [])
+      |> Repo.transaction()
 
-  ## Examples
-
-      iex> change_answer(answer)
-      %Ecto.Changeset{data: %Answer{}}
-
-  """
-  def change_answer(%Answer{} = answer, attrs \\ %{}) do
-    Answer.changeset(answer, attrs)
+    {:ok, result}
   end
 end
