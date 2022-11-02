@@ -518,4 +518,165 @@ defmodule Quizy.Quizes do
 
     {:ok, result}
   end
+
+  alias Quizy.Quizes.Solution
+
+  def list_solutions_for_quiz(quiz_id) do
+    query = from s in Solution, where: s.quiz_id == ^quiz_id
+
+    query
+    |> Repo.all()
+    |> Enum.map(fn solution ->
+      populate_scores(solution)
+    end)
+  end
+
+  def list_solutions_for_user(user_id) do
+    query = from s in Solution, where: s.user_id == ^user_id
+
+    query
+    |> Repo.all()
+    |> Enum.map(fn solution ->
+      populate_scores(solution)
+    end)
+  end
+
+  @doc """
+  Creates a solution.
+
+  ## Examples
+
+      iex> create_solution(%{field: value})
+      {:ok, %Solution{}}
+
+      iex> create_solution(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_solution!(%{"question_solutions" => question_solutions} = attrs, quiz, user) do
+    attrs =
+      attrs
+      |> Map.put("quiz_id", quiz.id)
+      |> Map.put("user_id", user.id)
+
+    solution =
+      %Solution{}
+      |> Solution.create_changeset(attrs)
+      |> Repo.insert!()
+
+    question_solutions
+    |> Enum.map(fn %{"question_id" => question_id, "picked_answers" => picked_answers} ->
+      question =
+        get_question!(question_id)
+        |> Repo.preload(:answers)
+
+      {correct_weight, incorrect_weight} = get_answer_weights(question)
+
+      question.answers
+      |> Enum.filter(fn %Answer{id: id} ->
+        id in picked_answers
+      end)
+      |> Enum.map(fn
+        %Answer{id: id, correct?: true} -> {id, correct_weight}
+        %Answer{id: id, correct?: false} -> {id, incorrect_weight}
+      end)
+      |> Enum.each(fn {id, weight} ->
+        create_answer_solution!(
+          %{
+            "answer_id" => id,
+            "score" => weight
+          },
+          solution,
+          question
+        )
+      end)
+    end)
+
+    solution =
+      solution
+      |> populate_scores()
+
+    score =
+      solution.question_scores
+      |> Enum.reduce(0, fn %{score: score}, total -> total + score end)
+
+    solution
+    |> Solution.update_changeset(%{score: score})
+    |> Repo.update!()
+  end
+
+  def populate_scores(solution) do
+    question_scores = get_question_scores(solution)
+
+    solution
+    |> Map.put(:question_scores, question_scores)
+  end
+
+  alias Quizy.Quizes.AnswerSolution
+
+  defp get_question_scores(solution) do
+    answer_query =
+      from answer_solution in AnswerSolution, where: answer_solution.solution_id == ^solution.id
+
+    answer_solutions = Repo.all(answer_query)
+
+    questions =
+      Question
+      |> where([q], q.quiz_id == ^solution.quiz_id)
+      |> order_by([q], q.position)
+      |> Repo.all()
+
+    question_scores =
+      answer_solutions
+      |> Enum.reduce(%{}, fn %AnswerSolution{question_id: id, score: score}, scores ->
+        {_old, scores} =
+          scores
+          |> Map.get_and_update(id, fn
+            nil -> {nil, score}
+            score_so_far -> {score_so_far, score_so_far + score}
+          end)
+
+        scores
+      end)
+
+    initial_scores =
+      questions
+      |> Enum.map(fn %Question{id: id} ->
+        %{question_id: id, score: Map.get(question_scores, id, 0)}
+      end)
+  end
+
+  @doc """
+  Gets the weights of {correct, incorrect} answers of a question.
+  """
+  defp get_answer_weights(question) do
+    %Question{answers: answers} = question
+
+    num_of_correct =
+      answers
+      |> Enum.map(fn answer -> answer.correct? end)
+      |> Enum.filter(& &1)
+      |> length
+
+    num_of_incorrect = length(answers) - num_of_correct
+
+    correct_weight = 1 / num_of_correct
+    incorrect_weight = -1 / num_of_incorrect
+
+    {correct_weight, incorrect_weight}
+  end
+
+  @doc """
+  Creates a solution.
+  """
+  defp create_answer_solution!(attrs, solution, question) do
+    attrs =
+      attrs
+      |> Map.put("solution_id", solution.id)
+      |> Map.put("question_id", question.id)
+
+    %AnswerSolution{}
+    |> AnswerSolution.create_changeset(attrs)
+    |> Repo.insert!()
+  end
 end

@@ -479,4 +479,61 @@ defmodule Quizy.QuizesTest do
       assert %Answer{id: ^answer_4_id, position: 3} = Quizes.get_answer!(answer_4_id)
     end
   end
+
+  describe "solutions" do
+    alias Quizy.Quizes.Solution
+    alias Quizy.Quizes.Question
+
+    import Quizy.QuizesFixtures
+
+    @tag wip: true
+    test "create_solution/1 must calculate the scores and store the results" do
+      user = user_fixture()
+      quiz = quiz_fixture()
+      %Question{id: question1_id} = question1 = question_for_quiz_fixture(quiz)
+      answer1_1 = answer_for_question_fixture(question1, %{"correct" => true})
+      _answer1_2 = answer_for_question_fixture(question1, %{"correct" => false})
+
+      %Question{id: question2_id} =
+        question2 = question_for_quiz_fixture(quiz, %{"multiple_choice" => true})
+
+      _answer2_1 = answer_for_question_fixture(question2, %{"correct" => true})
+      answer2_2 = answer_for_question_fixture(question2, %{"correct" => true})
+      answer2_3 = answer_for_question_fixture(question2, %{"correct" => true})
+      _answer2_4 = answer_for_question_fixture(question2, %{"correct" => false})
+      answer2_5 = answer_for_question_fixture(question2, %{"correct" => false})
+
+      %Question{id: question3_id} =
+        question3 = question_for_quiz_fixture(quiz, %{"multiple_choice" => true})
+
+      _answer3_1 = answer_for_question_fixture(question3, %{"correct" => true})
+      _answer3_2 = answer_for_question_fixture(question3, %{"correct" => true})
+      _answer3_3 = answer_for_question_fixture(question3, %{"correct" => false})
+
+      assert %Solution{score: score, question_scores: question_scores} =
+               Quizes.create_solution!(
+                 %{
+                   "question_solutions" => [
+                     %{"question_id" => question1_id, "picked_answers" => [answer1_1.id]},
+                     %{
+                       "question_id" => question2_id,
+                       "picked_answers" => [answer2_2.id, answer2_3.id, answer2_5.id]
+                     }
+                   ]
+                 },
+                 quiz,
+                 user
+               )
+
+      question2_score = 1 / 3 + 1 / 3 - 1 / 2
+
+      assert [
+               %{question_id: question1_id, score: 1},
+               %{question_id: question2_id, score: question2_score},
+               %{question_id: question3_id, score: 0}
+             ] == question_scores
+
+      assert score == 1 + question2_score
+    end
+  end
 end

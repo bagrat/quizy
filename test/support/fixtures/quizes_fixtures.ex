@@ -101,4 +101,16 @@ defmodule Quizy.QuizesFixtures do
 
     answer
   end
+
+  @doc """
+  Generate a solution.
+  """
+  def solution_fixture(quiz, user, attrs \\ %{}) do
+    solution =
+      attrs
+      |> Enum.into(%{})
+      |> Quizy.Quizes.create_solution!(quiz, user)
+
+    solution
+  end
 end
