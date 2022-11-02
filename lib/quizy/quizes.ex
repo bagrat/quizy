@@ -47,8 +47,8 @@ defmodule Quizy.Quizes do
   If the user is not the owner of the quiz, it is returned only if published.
   """
   def quiz_available?(quiz, user) when quiz.user_id == user.id, do: true
-  def quiz_available?(quiz, user) when quiz.published?, do: true
-  def quiz_available?(quiz, user), do: false
+  def quiz_available?(quiz, _user) when quiz.published?, do: true
+  def quiz_available?(_quiz, _user), do: false
 
   @doc """
   Creates a quiz.
@@ -191,7 +191,7 @@ defmodule Quizy.Quizes do
     |> Repo.insert()
   end
 
-  defp create_question_at_position(attrs, position), do: {:error, :too_many_questions}
+  defp create_question_at_position(_attrs, _position), do: {:error, :too_many_questions}
 
   defp get_number_of_questions(quiz) do
     query = from q in Question, where: q.quiz_id == ^quiz.id, select: count()
@@ -233,20 +233,18 @@ defmodule Quizy.Quizes do
         query =
           case new_position > question.position do
             true ->
-              query =
-                from q in Question,
-                  where:
-                    q.quiz_id == ^quiz.id and q.position > ^question.position and
-                      q.position <= ^new_position,
-                  update: [set: [position: q.position - 1]]
+              from q in Question,
+                where:
+                  q.quiz_id == ^quiz.id and q.position > ^question.position and
+                    q.position <= ^new_position,
+                update: [set: [position: q.position - 1]]
 
             false ->
-              query =
-                from q in Question,
-                  where:
-                    q.quiz_id == ^quiz.id and q.position < ^question.position and
-                      q.position >= ^new_position,
-                  update: [set: [position: q.position + 1]]
+              from q in Question,
+                where:
+                  q.quiz_id == ^quiz.id and q.position < ^question.position and
+                    q.position >= ^new_position,
+                update: [set: [position: q.position + 1]]
           end
 
         {:ok, %{update_position: question}} =
@@ -345,7 +343,7 @@ defmodule Quizy.Quizes do
     create_answer(attrs, Repo.preload(question, :quiz))
   end
 
-  def create_answer(attrs, %Question{quiz: %Quiz{published?: true}}) do
+  def create_answer(_attrs, %Question{quiz: %Quiz{published?: true}}) do
     {:error, :already_published}
   end
 
@@ -369,7 +367,7 @@ defmodule Quizy.Quizes do
     |> Repo.insert()
   end
 
-  defp create_answer_at_position(attrs, position), do: {:error, :too_many_answers}
+  defp create_answer_at_position(_attrs, _position), do: {:error, :too_many_answers}
 
   defp get_number_of_answers(question) do
     query = from a in Answer, where: a.question_id == ^question.id, select: count()
@@ -412,20 +410,18 @@ defmodule Quizy.Quizes do
         query =
           case new_position > answer.position do
             true ->
-              query =
-                from q in Answer,
-                  where:
-                    q.question_id == ^question.id and q.position > ^answer.position and
-                      q.position <= ^new_position,
-                  update: [set: [position: q.position - 1]]
+              from q in Answer,
+                where:
+                  q.question_id == ^question.id and q.position > ^answer.position and
+                    q.position <= ^new_position,
+                update: [set: [position: q.position - 1]]
 
             false ->
-              query =
-                from q in Answer,
-                  where:
-                    q.question_id == ^question.id and q.position < ^answer.position and
-                      q.position >= ^new_position,
-                  update: [set: [position: q.position + 1]]
+              from q in Answer,
+                where:
+                  q.question_id == ^question.id and q.position < ^answer.position and
+                    q.position >= ^new_position,
+                update: [set: [position: q.position + 1]]
           end
 
         {:ok, %{update_position: answer}} =
