@@ -4,7 +4,6 @@ defmodule QuizyWeb.SolutionControllerTest do
   import Quizy.QuizesFixtures
   import Quizy.AccountsFixtures
 
-  alias Quizy.Quizes.Solution
   alias Quizy.Quizes.Question
 
   setup %{conn: conn} do
@@ -14,7 +13,7 @@ defmodule QuizyWeb.SolutionControllerTest do
   end
 
   @tag wip: true
-  test "creating a solution returns the scores", %{auth_conn: conn, user: user} do
+  test "creating a solution returns the scores", %{auth_conn: conn} do
     owner = user_fixture()
     quiz = quiz_for_user_fixture(owner)
 
@@ -65,7 +64,7 @@ defmodule QuizyWeb.SolutionControllerTest do
   end
 
   @tag wip: true
-  test "creating a solution erros on bad input", %{auth_conn: conn, user: user} do
+  test "creating a solution erros on bad input", %{auth_conn: conn} do
     owner = user_fixture()
     quiz = quiz_for_user_fixture(owner)
 
@@ -125,10 +124,20 @@ defmodule QuizyWeb.SolutionControllerTest do
     post(conn, Routes.solution_path(conn, :create, quiz.id), solution_params)
     conn = get(conn, Routes.solution_path(conn, :index_for_quiz, quiz.id))
     assert [%{"score" => score, "question_scores" => question_scores}] = json_response(conn, 200)
+
+    question2_score = 1 / 3 + 1 / 3 - 1 / 2
+
+    assert [
+             %{"question_id" => question1_id, "score" => 1},
+             %{"question_id" => question2_id, "score" => question2_score},
+             %{"question_id" => question3_id, "score" => 0}
+           ] == question_scores
+
+    assert score == 1 + question2_score
   end
 
   @tag wip: true
-  test "listing all solution for a user returns scores", %{auth_conn: conn, user: user} do
+  test "listing all solution for a user returns scores", %{auth_conn: conn} do
     owner = user_fixture()
     quiz = quiz_for_user_fixture(owner)
 
@@ -167,5 +176,15 @@ defmodule QuizyWeb.SolutionControllerTest do
     post(conn, Routes.solution_path(conn, :create, quiz.id), solution_params)
     conn = get(conn, Routes.solution_path(conn, :index_for_user))
     assert [%{"score" => score, "question_scores" => question_scores}] = json_response(conn, 200)
+
+    question2_score = 1 / 3 + 1 / 3 - 1 / 2
+
+    assert [
+             %{"question_id" => question1_id, "score" => 1},
+             %{"question_id" => question2_id, "score" => question2_score},
+             %{"question_id" => question3_id, "score" => 0}
+           ] == question_scores
+
+    assert score == 1 + question2_score
   end
 end

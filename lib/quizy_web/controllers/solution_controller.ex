@@ -2,11 +2,10 @@ defmodule QuizyWeb.SolutionController do
   use QuizyWeb, :controller
 
   alias Quizy.Quizes
-  alias Quizy.Quizes.Solution
 
   action_fallback QuizyWeb.FallbackController
 
-  def index_for_quiz(conn, %{"quiz_id" => quiz_id} = params) do
+  def index_for_quiz(conn, %{"quiz_id" => quiz_id} = _params) do
     quiz = Quizes.get_quiz!(quiz_id)
 
     case quiz.user_id == conn.assigns.current_user.id do

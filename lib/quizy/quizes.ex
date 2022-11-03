@@ -128,14 +128,14 @@ defmodule Quizy.Quizes do
 
   defp question_complete?(%Question{answers: []}), do: false
 
-  defp question_complete?(%Question{answers: answers, multiple_choice?: true} = questions)
+  defp question_complete?(%Question{answers: answers, multiple_choice?: true} = _questions)
        when is_list(answers) do
     answers
     |> Enum.map(fn answer -> answer.correct? end)
     |> Enum.any?()
   end
 
-  defp question_complete?(%Question{answers: answers, multiple_choice?: false} = questions)
+  defp question_complete?(%Question{answers: answers, multiple_choice?: false} = _questions)
        when is_list(answers) do
     1 ==
       answers
@@ -639,16 +639,12 @@ defmodule Quizy.Quizes do
         scores
       end)
 
-    initial_scores =
-      questions
-      |> Enum.map(fn %Question{id: id} ->
-        %{question_id: id, score: Map.get(question_scores, id, 0)}
-      end)
+    questions
+    |> Enum.map(fn %Question{id: id} ->
+      %{question_id: id, score: Map.get(question_scores, id, 0)}
+    end)
   end
 
-  @doc """
-  Gets the weights of {correct, incorrect} answers of a question.
-  """
   defp get_answer_weights(question) do
     %Question{answers: answers} = question
 
@@ -666,9 +662,6 @@ defmodule Quizy.Quizes do
     {correct_weight, incorrect_weight}
   end
 
-  @doc """
-  Creates a solution.
-  """
   defp create_answer_solution!(attrs, solution, question) do
     attrs =
       attrs
